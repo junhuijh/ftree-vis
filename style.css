@@ -49,6 +49,12 @@ form span.f {
     float: left;
 }
 
+#canvas-container {
+    width: 100vw;       /* full viewport width */
+    height: 100vh;      /* full viewport height */
+    overflow: auto;     /* scrollbars appear if content is larger */
+}
+
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 div.comment { color: #666; text-align: center; margin-right: .1in; }

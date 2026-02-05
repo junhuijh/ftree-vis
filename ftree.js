@@ -46,33 +46,40 @@ function drawFatTree(depth, width) {
         return;
     }
 
-    var w = kexp(depth - 1) * padg + 200;
-    var h = (2 * depth) * hline;
+    var w = kexp(depth - 1) * (podw+20) + 400;
+    var h = (depth) * (hline+1);
 
-    var svg = d3.select("body").append("svg")
+    var svg = d3.select("#canvas-container").append("svg")
         .attr("width", w)
         .attr("height", h)
         .attr("class", "main")
         .append("g")
-        .attr("transform", "translate(" + w/2 + "," + h/2 + ")");
+        .attr("transform", "translate(" + w/2 + "," + 4 + ")");
 
     var linePositions = [];
 
     function podPositions(d) {
         var ret = [];
+        // Each row has 2*k^d number of switches
+        // Except for spine which has k^d
+        var number_of_groups;
+        if(d==0){
+            number_of_groups = kexp(d);
+        }else{
+            number_of_groups = kexp(d)*2;
+        }
+        var number_of_pods_per_group = kexp(depth - 1 - d);
 
-        var ngroup = kexp(d);
-        var pergroup = kexp(depth - 1 - d);
 
-        var wgroup = pergroup * padg;
-        var wgroups = wgroup * (ngroup - 1);
+        var wgroup = number_of_pods_per_group * padg;
+        var wgroups = wgroup * (number_of_groups - 1);
         var offset = -wgroups/2;
 
-        for (var i = 0; i < ngroup; i++) {
-            var wpods = pergroup * padi;
+        for (var i = 0; i < number_of_groups; i++) {
+            var wpods = number_of_pods_per_group * padi;
             var goffset = wgroup * i - wpods/2;
             
-            for (var j = 0; j < pergroup; j++) {
+            for (var j = 0; j < number_of_pods_per_group; j++) {
                 ret.push(offset + goffset + padi * j);
             }
         }
@@ -115,34 +122,41 @@ function drawFatTree(depth, width) {
             if (k == 1) {
                 drawHost(list[i], y, hhost * direction, 0);
             } else if (k == 2) {
-                drawHost(list[i], y, hhost * direction, -2);
                 drawHost(list[i], y, hhost * direction, +2);
             } else if (k == 3) {
-                drawHost(list[i], y, hhost * direction, -4);
                 drawHost(list[i], y, hhost * direction, 0);
-                drawHost(list[i], y, hhost * direction, +4);
             } else {
-                drawHost(list[i], y, hhost * direction, -4);
                 drawHost(list[i], y, hhost * direction, 0);
-                drawHost(list[i], y, hhost * direction, +4);
             }
         }
     }
     
     function linePods(d, list1, list2, y1, y2) {
-        var pergroup = kexp(depth - 1 - d);
-        var ngroup = kexp(d);
-
-        var perbundle = pergroup / k;
+        // The spine has double the lines
+        var number_of_groups;
+        if(d==0){
+            number_of_groups = kexp(d);
+        }else{
+            number_of_groups = kexp(d)*2;
+        }
+        var number_of_pods_per_group = kexp(depth - 1 - d);
+        var perbundle = number_of_pods_per_group / k;
         
-        for (var i = 0; i < ngroup; i++) {
-            var offset = pergroup * i;
-            for (var j = 0; j < k; j++) {
-                var boffset = perbundle * j;
-                for (var t = 0; t < perbundle; t++) {
-                    var ichild = offset + boffset + t;
-                    for (var d = 0; d < k; d++) {
-                        var ifather = offset + perbundle * d + t;
+
+        if (d==0){
+            var length_of_parent = list1.length;
+            var number_of_children_groups = kexp(d+1)*2;
+            var number_of_pods_per_child_group = kexp(depth - 1 - d-1);
+
+            var number_of_groups = number_of_pods_per_child_group
+            var number_of_items_per_group = length_of_parent/number_of_groups
+
+            for(var group=0;group<number_of_groups;group++){
+                for(var item=0;item<number_of_items_per_group;item++){
+                    var parent_start = number_of_items_per_group*group;
+                    for (var child = 0; child < number_of_children_groups; child++) {
+                        var ifather = parent_start+item;
+                        var ichild = number_of_pods_per_child_group*child + group;
                         svg.append("line")
                             .attr("class", "cable")
                             .attr("x1", list1[ifather])
@@ -152,23 +166,52 @@ function drawFatTree(depth, width) {
                     }
                 }
             }
+            // for(var i=length_of_parent/2;i<length_of_parent;i++){
+            //     for (var child = 0; child < number_of_children_groups; child++) {
+            //         var ifather = i;
+            //         var ichild = number_of_pods_per_child_group*child + 1;
+            //         svg.append("line")
+            //             .attr("class", "cable")
+            //             .attr("x1", list1[ifather])
+            //             .attr("y1", y1)
+            //             .attr("x2", list2[ichild])
+            //             .attr("y2", y2);
+            //     }
+            // }
+
+        }else{
+            for (var i = 0; i < number_of_groups; i++) {
+                var offset = number_of_pods_per_group * i;
+                for (var j = 0; j < k; j++) {
+                    var boffset = perbundle * j;
+                    for (var t = 0; t < perbundle; t++) {
+                        var ichild = offset + boffset + t;
+                        for (var a = 0; a < k; a++) {
+                            var ifather = offset + perbundle * a + t;
+                            svg.append("line")
+                                .attr("class", "cable")
+                                .attr("x1", list1[ifather])
+                                .attr("y1", y1)
+                                .attr("x2", list2[ichild])
+                                .attr("y2", y2);
+                        }
+                    }
+                }
+            }
         }
     }
 
     for (var i = 0; i < depth - 1; i++) {
         linePods(i, linePositions[i], linePositions[i + 1], i * hline, (i + 1) * hline);
-        linePods(i, linePositions[i], linePositions[i + 1], -i * hline, -(i + 1) * hline);
     }
 
     drawHosts(linePositions[depth - 1], (depth - 1) * hline, 1);
-    drawHosts(linePositions[depth - 1], -(depth - 1) * hline, -1);
 
     for (var i = 0; i < depth; i++) {
         if (i == 0) {
             drawPods(linePositions[0], 0);
         } else {
             drawPods(linePositions[i], i * hline);
-            drawPods(linePositions[i], -i * hline);
         }
     }
 }
