@@ -51,7 +51,7 @@ form span.f {
 
 #canvas-container {
     width: 100vw;       /* full viewport width */
-    height: 100vh;      /* full viewport height */
+    height: 500px;      /* full viewport height */
     overflow: auto;     /* scrollbars appear if content is larger */
 }
 
